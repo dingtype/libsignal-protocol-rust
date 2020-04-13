@@ -1,3 +1,7 @@
+use crate::libsignal::IdentityKeyPair;
+use crate::libsignal::devices::DeviceConsistencyCommitment;
+use crate::libsignal::devices::DeviceConsistencySignature;
+
 const CURRENT_VERSION: i32 = 3;
 
 const WHISPER_TYPE: i32                = 2;
@@ -9,6 +13,7 @@ const SENDERKEY_DISTRIBUTION_TYPE: i32 = 5;
 const ENCRYPTED_MESSAGE_OVERHEAD: i32 = 53;
 
 pub enum Type {
+    Unknown,
     Whisper(i32),
     Prekey(i32),
     Senderkey(i32),
@@ -17,53 +22,70 @@ pub enum Type {
 }
 
 pub trait CiphertextMessage {
-    fn serialize() -> Vec<u8>;
-    fn get_type() -> Type;
+    fn serialize(&self) -> [u8; 32];
+    fn get_type(&self) -> Type;
 }
 
-pub struct DeviceConsistencyMessage {}
+#[derive(Default)]
+pub struct DeviceConsistencyMessage {
+    signature: DeviceConsistencySignature,
+    generation: i32,
+    serialized: [u8; 32],
+}
 
-pub struct PreKeySignalMessage {}
+impl DeviceConsistencyMessage {
+    fn new(commitment: DeviceConsistencyCommitment, identity_key_pair: IdentityKeyPair) -> Self {
+	Self::default()
+    }
+}
+
+pub struct PreKeySignalMessage;
 
 impl CiphertextMessage for PreKeySignalMessage {
-    fn serialize() -> Vec<u8> {
-	Vec::new()
+    fn serialize(&self) -> [u8; 32] {
+	// FIXME: Stub
+	[0; 32]
     }
-    
-    fn get_type() -> Type {
+    fn get_type(&self) -> Type {
 	Type::Prekey(PREKEY_TYPE)
     }
 }
 
-pub struct SenderKeyDistributionMessage {}
+pub struct SenderKeyDistributionMessage;
+
 impl CiphertextMessage for SenderKeyDistributionMessage {
-    fn serialize() -> Vec<u8> {
-	Vec::new()
+    fn serialize(&self) -> [u8; 32] {
+	// FIXME: Stub
+	[0; 32]
     }
     
-    fn get_type() -> Type {
+    fn get_type(&self) -> Type {
 	Type::SenderkeyDistribution(SENDERKEY_DISTRIBUTION_TYPE)
     }
 }
 
-pub struct SenderKeyMessage {}
+pub struct SenderKeyMessage;
+
 impl CiphertextMessage for SenderKeyMessage {
-    fn serialize() -> Vec<u8> {
-	Vec::new()
+    fn serialize(&self) -> [u8; 32] {
+	// FIXME: Stub
+	[0; 32]
     }
     
-    fn get_type() -> Type {
+    fn get_type(&self) -> Type {
 	Type::Senderkey(SENDERKEY_TYPE)
     }
 }
 
-pub struct SignalMessage {}
+pub struct SignalMessage;
+
 impl CiphertextMessage for SignalMessage {
-    fn serialize() -> Vec<u8> {
-	Vec::new()
+    fn serialize(&self) -> [u8; 32] {
+	// FIXME: Stub
+	[0; 32]
     }
     
-    fn get_type() -> Type {
+    fn get_type(&self) -> Type {
 	Type::Whisper(WHISPER_TYPE)
     }
 }
