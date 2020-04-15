@@ -1,6 +1,6 @@
-extern crate rand;
-extern crate byteorder;
-extern crate x25519_dalek;
+// extern crate rand;
+// extern crate byteorder;
+// extern crate x25519_dalek;
 
 use rand::rngs::OsRng;
 use rand::RngCore;
@@ -14,7 +14,7 @@ pub fn generate_key_pair() -> ecc::KeyPair {
     let mut gen = OsRng::default();
     let mut buf = [0; 32];
     
-    let mut priv_key = gen.next_u32();
+    let priv_key = gen.next_u32();
 
     LittleEndian::write_u32(&mut buf, priv_key);
     

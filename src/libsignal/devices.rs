@@ -9,8 +9,8 @@ pub struct DeviceConsistencyCommitment {
 }
 
 impl DeviceConsistencyCommitment {
-    pub fn new(generation: i32, identityKeys: Vec<libsignal::IdentityKey>) -> DeviceConsistencyCommitment {
-	// Stub
+    pub fn new(generation: i32, identity_keys: Vec<libsignal::IdentityKey>) -> DeviceConsistencyCommitment {
+	// FIXME: Stub
 	DeviceConsistencyCommitment {
 	    generation: 0,
 	    serialized: Vec::new(),
