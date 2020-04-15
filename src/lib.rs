@@ -1,5 +1,5 @@
 // pub mod libsignal;
-/*
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -7,13 +7,15 @@ mod tests {
         assert_eq!(2 + 2, 4);
     }
 }
- */
+
 
 extern crate rand;
 extern crate byteorder;
 extern crate x25519_dalek;
 
 mod libsignal;
+
+pub mod helpers;
 
 // Publicize all child instances.
 pub use crate::libsignal::*;
