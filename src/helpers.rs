@@ -1,7 +1,9 @@
 pub mod slices {
 
+    use std::convert::TryInto;
+
     pub struct InvalidSliceError(pub String);
-    
+
     pub fn concat_2<T: Clone>(a: &[T], b: &[T]) -> Vec<T> {
 	let mut v = Vec::with_capacity(a.len() + b.len());
 	v.extend_from_slice(a);
@@ -40,6 +42,13 @@ pub mod slices {
 	let src_segment = &src[src_pos..(src_pos+length)];
 	let v = concat_3(dest_front, src_segment, dest_back);
 	Ok(v)
+    }
+
+    pub fn to_array32(src: &[u8]) -> Result<[u8; 32], InvalidSliceError> {
+	match src.try_into() {
+	    Ok(v) => Ok(v),
+	    Err(_) => Err(InvalidSliceError("Can't convert slice &[u8] to [u8; 32]".to_string())),
+	}
     }
 }
 
@@ -81,6 +90,23 @@ pub mod tests {
 	assert_eq!(&v[..a.len()], a);
 	assert_eq!(&v[a.len()..(b.len() + a.len())], b);
 	assert_eq!(&v[(b.len() + a.len())..], c);
+    }
+
+    #[test]
+    pub fn test_to_array32() {
+	let a = &[0; 16][..];
+	let expect_a = "Can't convert slice &[u8] to [u8; 32]".to_string();
+	match to_array32(a) {
+	    Err(InvalidSliceError(s)) => assert_eq!(s, expect_a),
+	    Ok(_)                     => panic!("Should panic"),
+	}
+
+	let b = &[0; 32][..];
+	let expect_b = [0; 32];
+	match to_array32(b) {
+	    Ok(v)  => assert_eq!(v, expect_b),
+	    Err(_) => panic!("Should panic"),
+	}
     }
 
     #[test]
