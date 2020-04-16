@@ -1,11 +1,11 @@
 #![allow(unused)]
 
-extern crate rand;
 extern crate byteorder;
+extern crate rand;
 extern crate x25519_dalek;
 
-pub mod libsignal;
 pub mod helpers;
+pub mod libsignal;
 
 // Publicize all child instances.
 pub use crate::libsignal::*;
