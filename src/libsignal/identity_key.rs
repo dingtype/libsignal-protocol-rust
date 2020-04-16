@@ -8,7 +8,7 @@ impl IdentityKey {
     /*
     pub fn new(bytes: &[u8: 32], offset: i32) -> Self {
         Self {
-            public_key: ecc::curve::decode_point(bytes, offset),
+            public_key: ecc::Curve::decode_point(bytes, offset),
         }
     }
 
@@ -26,14 +26,12 @@ impl IdentityKey {
     */
 
     fn get_fingerprint(&self) -> String {
-	let ecc::PublicKey(key) = self.public_key;
+        let ecc::PublicKey(key) = self.public_key;
         let hex_string = std::str::from_utf8(&key[..]).unwrap();
         // hex::decode(hex_string).unwrap()
 
         println!("hex string -> {}", hex_string);
-        
+
         String::from(hex_string)
     }
 }
-
-

@@ -1,9 +1,16 @@
-use crate::libsignal::{protocol, curve25519};
+use crate::helpers;
+use crate::libsignal::{curve25519, ecc, protocol};
+use std::convert::TryInto;
 
-pub mod curve {
-    
-    pub fn generate_key_pair() -> super::KeyPair {
-	super::curve25519::generate_key_pair()
+static DJB_TYPE: i32 = 0x05;
+
+pub struct Curve;
+
+pub struct InvalidKeyError(pub String);
+
+impl Curve {
+    pub fn generate_key_pair() -> KeyPair {
+        super::curve25519::generate_key_pair()
     }
 }
 
@@ -17,6 +24,39 @@ impl KeyPair {
         Self {
             public_key: public,
             private_key: private,
+        }
+    }
+
+    pub fn decode_point(
+        bytes: &[u8],
+        offset: usize,
+    ) -> Result<impl ecc::ECPublicKey, InvalidKeyError> {
+        if bytes.len() == 0 || bytes.len() - offset < 1 {
+            Err(InvalidKeyError("No key type identifier".to_string()))
+        } else {
+            let type_ = &bytes[offset] & 0xff;
+
+            if type_ == DJB_TYPE.try_into().unwrap() {
+                if bytes.len() - offset < 33 {
+                    Err(InvalidKeyError(
+                        format!("Bad key length: {}", bytes.len()).to_string(),
+                    ))
+                } else {
+                    let mut key_bytes = &[0; 32][..];
+                    let start_pos = offset + 1;
+                    let result =
+                        helpers::slices::copy(&bytes, offset + 1, key_bytes, 0, key_bytes.len());
+                    match result {
+                        Ok(v) => match helpers::slices::to_array32(&(&v)) {
+                            Ok(arr) => Ok(PublicKey(arr)),
+                            Err(_) => Err(InvalidKeyError(format!("Bad key type: {}", type_))),
+                        },
+                        Err(_) => Err(InvalidKeyError(format!("Bad key type: {}", type_))),
+                    }
+                }
+            } else {
+                Err(InvalidKeyError(format!("Bad key type: {}", type_)))
+            }
         }
     }
 }
@@ -36,8 +76,8 @@ pub struct PrivateKey(pub [u8; 32]);
 
 impl PrivateKey {
     pub fn new(bytes: &mut [u8; 32]) -> Self {
-	let mut buf: [u8; 32] = [0; 32];
-	buf.clone_from_slice(bytes);
+        let mut buf: [u8; 32] = [0; 32];
+        buf.clone_from_slice(bytes);
         Self(buf)
     }
 }
@@ -56,24 +96,22 @@ pub struct PublicKey(pub [u8; 32]);
 
 impl PublicKey {
     pub fn new(bytes: [u8; 32]) -> Self {
-	PublicKey(bytes)
+        PublicKey(bytes)
     }
 }
 
 impl ECPublicKey for PublicKey {
     fn from(bytes: [u8; 32]) -> Self {
-	PublicKey(bytes)
+        PublicKey(bytes)
     }
 
     fn serialize(&self) -> [u8; 32] {
-	// FIXME: Stub
-	[0; 32]
+        // FIXME: Stub
+        [0; 32]
     }
 
     fn get_type(&self) -> protocol::Type {
-	// FIXME: Stub
-	protocol::Type::Unknown
+        // FIXME: Stub
+        protocol::Type::Unknown
     }
 }
-
-    
