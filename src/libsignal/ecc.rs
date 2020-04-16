@@ -2,7 +2,7 @@ use crate::helpers;
 use crate::libsignal::{curve25519, ecc, protocol};
 use std::convert::TryInto;
 
-static DJB_TYPE: i32 = 0x05;
+static DJB_TYPE: u8 = 0x05;
 
 pub struct Curve;
 
@@ -34,7 +34,11 @@ impl KeyPair {
         if bytes.len() == 0 || bytes.len() - offset < 1 {
             Err(InvalidKeyError("No key type identifier".to_string()))
         } else {
+	    
+            // Truncate the number to last 8 bits
             let type_ = &bytes[offset] & 0xff;
+
+	    println!("type_ {}", type_);
 
             if type_ == DJB_TYPE.try_into().unwrap() {
                 if bytes.len() - offset < 33 {
@@ -51,7 +55,7 @@ impl KeyPair {
                             Ok(arr) => Ok(PublicKey(arr)),
                             Err(_) => Err(InvalidKeyError(format!("Bad key type: {}", type_))),
                         },
-                        Err(_) => Err(InvalidKeyError(format!("Bad key type: {}", type_))),
+			Err(_) => Err(InvalidKeyError(format!("Bad key type: {}", type_))),
                     }
                 }
             } else {
@@ -113,5 +117,35 @@ impl ECPublicKey for PublicKey {
     fn get_type(&self) -> protocol::Type {
         // FIXME: Stub
         protocol::Type::Unknown
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+
+    use super::*;
+
+    #[test]
+    pub fn test_keypair_decode_point() {
+        let b1 = &[];
+        let b2 = &[0; 10];
+        let offset1 = 2;
+        let offset2 = 10;
+	let b3 = &helpers::slices::concat_2(&[0x00, 0x08, 0x05], &[0x00; 64][..]);
+
+        match KeyPair::decode_point(b1, 2) {
+            Ok(_) => panic!("Expected Error"),
+            Err(InvalidKeyError(s)) => assert_eq!(s, "No key type identifier".to_string()),
+        }
+
+        match KeyPair::decode_point(b2, 10) {
+            Ok(_) => panic!("Expected Error"),
+            Err(InvalidKeyError(s)) => assert_eq!(s, "No key type identifier".to_string()),
+        }
+
+	match KeyPair::decode_point(b3, 2) {
+	    Ok(_) => assert!(true),
+	    Err(_) => panic!("Expect Ok, found Err"),
+	}
     }
 }

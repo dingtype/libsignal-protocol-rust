@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 extern crate rand;
 extern crate byteorder;
 extern crate x25519_dalek;
