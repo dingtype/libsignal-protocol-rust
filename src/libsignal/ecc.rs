@@ -30,7 +30,7 @@ impl KeyPair {
     pub fn decode_point(
         bytes: &[u8],
         offset: usize,
-    ) -> Result<impl ecc::ECPublicKey, InvalidKeyError> {
+    ) -> Result<impl ECPublicKey, InvalidKeyError> {
         if bytes.len() == 0 || bytes.len() - offset < 1 {
             Err(InvalidKeyError("No key type identifier".to_string()))
         } else {
@@ -61,6 +61,13 @@ impl KeyPair {
                 Err(InvalidKeyError(format!("Bad key type: {}", type_)))
             }
         }
+    }
+
+    pub fn decode_private_point(bytes: &[u8]) -> Result<impl ECPrivateKey, InvalidKeyError> {
+	match helpers::slices::to_array32(bytes) {
+	    Ok(b)  => Ok(PrivateKey(b)),
+	    Err(_) => Err(InvalidKeyError("Error decoding private point".to_string())),
+	}
     }
 }
 
@@ -146,5 +153,27 @@ pub mod tests {
             Ok(_) => assert!(true),
             Err(_) => panic!("Expect Ok, found Err"),
         }
+    }
+
+    #[test]
+    pub fn test_keypair_decode_private_point() {
+	let too_short = &[0; 10];
+	let too_long = &[0x08; 64];
+	let good_size = &[0x05; 32];
+	
+	match KeyPair::decode_private_point(too_short) {
+	    Ok(_)  => panic!("Expect to fail"),
+	    Err(_) => assert!(true),
+	}
+
+	match KeyPair::decode_private_point(too_long) {
+	    Ok(_)  => panic!("Expect to fail"),
+	    Err(_) => assert!(true),
+	}
+
+	match KeyPair::decode_private_point(good_size) {
+	    Ok(_)  => assert!(true),
+	    Err(_) => panic!("Expect Ok"),
+	}
     }
 }
