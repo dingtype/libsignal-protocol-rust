@@ -1,7 +1,3 @@
-// extern crate rand;
-// extern crate byteorder;
-// extern crate x25519_dalek;
-
 use byteorder::{ByteOrder, LittleEndian};
 use rand::rngs::OsRng;
 use rand::RngCore;
@@ -10,23 +6,27 @@ use x25519_dalek::PublicKey;
 
 use crate::libsignal::ecc;
 
-pub fn generate_key_pair() -> ecc::KeyPair {
-    let mut gen = OsRng::default();
-    let mut buf = [0; 32];
+pub struct Curve25519;
 
-    let priv_key = gen.next_u32();
+impl Curve25519 {
+    pub fn generate_key_pair() -> ecc::KeyPair {
+        let mut gen = OsRng::default();
+        let mut buf = [0; 32];
 
-    LittleEndian::write_u32(&mut buf, priv_key);
+        let priv_key = gen.next_u32();
 
-    // let secret = EphemeralSecret::new(&mut priv_key);
+        LittleEndian::write_u32(&mut buf, priv_key);
 
-    let secret = EphemeralSecret::new(&mut gen);
+        // let secret = EphemeralSecret::new(&mut priv_key);
 
-    let pub_key = *PublicKey::from(&secret).as_bytes();
+        let secret = EphemeralSecret::new(&mut gen);
 
-    ecc::KeyPair::new(
-        // ecc::PublicKey::from(pub_key),
-        ecc::PublicKey(pub_key),
-        ecc::PrivateKey::new(&mut buf),
-    )
+        let pub_key = *PublicKey::from(&secret).as_bytes();
+
+        ecc::KeyPair::new(
+            // ecc::PublicKey::from(pub_key),
+            ecc::PublicKey(pub_key),
+            ecc::PrivateKey::new(&mut buf),
+        )
+    }
 }

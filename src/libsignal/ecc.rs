@@ -1,5 +1,5 @@
 use crate::helpers;
-use crate::libsignal::{curve25519, ecc, protocol};
+use crate::libsignal::{ecc, protocol, Curve25519};
 use std::convert::TryInto;
 
 static DJB_TYPE: u8 = 0x05;
@@ -10,7 +10,7 @@ pub struct InvalidKeyError(pub String);
 
 impl Curve {
     pub fn generate_key_pair() -> KeyPair {
-        super::curve25519::generate_key_pair()
+        Curve25519::generate_key_pair()
     }
 }
 
@@ -27,10 +27,7 @@ impl KeyPair {
         }
     }
 
-    pub fn decode_point(
-        bytes: &[u8],
-        offset: usize,
-    ) -> Result<impl ECPublicKey, InvalidKeyError> {
+    pub fn decode_point(bytes: &[u8], offset: usize) -> Result<impl ECPublicKey, InvalidKeyError> {
         if bytes.len() == 0 || bytes.len() - offset < 1 {
             Err(InvalidKeyError("No key type identifier".to_string()))
         } else {
@@ -64,25 +61,53 @@ impl KeyPair {
     }
 
     pub fn decode_private_point(bytes: &[u8]) -> Result<impl ECPrivateKey, InvalidKeyError> {
-	match helpers::slices::to_array32(bytes) {
-	    Ok(b)  => Ok(PrivateKey(b)),
-	    Err(_) => Err(InvalidKeyError("Error decoding private point".to_string())),
-	}
+        match helpers::slices::to_array32(bytes) {
+            Ok(b) => Ok(PrivateKey(b)),
+            Err(_) => Err(InvalidKeyError("Error decoding private point".to_string())),
+        }
+    }
+
+    pub fn calculate_agreement(
+        public_key: impl ECPublicKey,
+        private_key: impl ECPrivateKey,
+    ) -> Result<[u8; 32], InvalidKeyError> {
+        let (a, b) = (public_key.get_type(), private_key.get_type());
+        if a != b {
+            return Err(InvalidKeyError(
+                "Public and private keys must be of the same type!".to_string(),
+            ));
+        }
+
+        if a == DJB_TYPE {
+            return Ok([0; 32]);
+        }
+
+        Ok([0; 32])
     }
 }
 
 pub trait ECPublicKey {
     fn from(bytes: [u8; 32]) -> Self;
     fn serialize(&self) -> [u8; 32];
-    fn get_type(&self) -> protocol::Type;
+    fn get_type(&self) -> u8;
 }
 
 pub trait ECPrivateKey {
     fn serialize(&self) -> [u8; 32];
-    fn get_type(&self) -> protocol::Type;
+    fn get_type(&self) -> u8;
 }
 
 pub struct PrivateKey(pub [u8; 32]);
+
+impl PartialEq for PrivateKey {
+    fn eq(&self, other: &Self) -> bool {
+        let PrivateKey(p1) = self;
+        let PrivateKey(p2) = self;
+        p1 == p2
+    }
+}
+
+impl Eq for PrivateKey {}
 
 impl PrivateKey {
     pub fn new(bytes: &mut [u8; 32]) -> Self {
@@ -97,8 +122,8 @@ impl ECPrivateKey for PrivateKey {
         [0; 32]
     }
 
-    fn get_type(&self) -> protocol::Type {
-        protocol::Type::Unknown
+    fn get_type(&self) -> u8 {
+        DJB_TYPE
     }
 }
 
@@ -110,6 +135,16 @@ impl PublicKey {
     }
 }
 
+impl PartialEq for PublicKey {
+    fn eq(&self, other: &Self) -> bool {
+        let PublicKey(p1) = self;
+        let PublicKey(p2) = self;
+        p1 == p2
+    }
+}
+
+impl Eq for PublicKey {}
+
 impl ECPublicKey for PublicKey {
     fn from(bytes: [u8; 32]) -> Self {
         PublicKey(bytes)
@@ -120,9 +155,9 @@ impl ECPublicKey for PublicKey {
         [0; 32]
     }
 
-    fn get_type(&self) -> protocol::Type {
+    fn get_type(&self) -> u8 {
         // FIXME: Stub
-        protocol::Type::Unknown
+        DJB_TYPE
     }
 }
 
@@ -157,23 +192,23 @@ pub mod tests {
 
     #[test]
     pub fn test_keypair_decode_private_point() {
-	let too_short = &[0; 10];
-	let too_long = &[0x08; 64];
-	let good_size = &[0x05; 32];
-	
-	match KeyPair::decode_private_point(too_short) {
-	    Ok(_)  => panic!("Expect to fail"),
-	    Err(_) => assert!(true),
-	}
+        let too_short = &[0; 10];
+        let too_long = &[0x08; 64];
+        let good_size = &[0x05; 32];
 
-	match KeyPair::decode_private_point(too_long) {
-	    Ok(_)  => panic!("Expect to fail"),
-	    Err(_) => assert!(true),
-	}
+        match KeyPair::decode_private_point(too_short) {
+            Ok(_) => panic!("Expect to fail"),
+            Err(_) => assert!(true),
+        }
 
-	match KeyPair::decode_private_point(good_size) {
-	    Ok(_)  => assert!(true),
-	    Err(_) => panic!("Expect Ok"),
-	}
+        match KeyPair::decode_private_point(too_long) {
+            Ok(_) => panic!("Expect to fail"),
+            Err(_) => assert!(true),
+        }
+
+        match KeyPair::decode_private_point(good_size) {
+            Ok(_) => assert!(true),
+            Err(_) => panic!("Expect Ok"),
+        }
     }
 }
