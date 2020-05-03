@@ -72,17 +72,17 @@ impl KeyPair {
         private_key: impl ECPrivateKey,
     ) -> Result<[u8; 32], InvalidKeyError> {
         let (a, b) = (public_key.get_type(), private_key.get_type());
-        if a != b {
+
+        if a != b || a != DJB_TYPE {
             return Err(InvalidKeyError(
                 "Public and private keys must be of the same type!".to_string(),
             ));
         }
 
-        if a == DJB_TYPE {
-            return Ok([0; 32]);
-        }
-
-        Ok([0; 32])
+        Ok(Curve25519::calculate_agreement(
+            public_key.get_public_key(),
+            private_key.get_private_key(),
+        ))
     }
 }
 
@@ -90,20 +90,20 @@ pub trait ECPublicKey {
     fn from(bytes: [u8; 32]) -> Self;
     fn serialize(&self) -> [u8; 32];
     fn get_type(&self) -> u8;
+    fn get_public_key(&self) -> [u8; 32];
 }
 
 pub trait ECPrivateKey {
     fn serialize(&self) -> [u8; 32];
     fn get_type(&self) -> u8;
+    fn get_private_key(&self) -> [u8; 32];
 }
 
 pub struct PrivateKey(pub [u8; 32]);
 
 impl PartialEq for PrivateKey {
     fn eq(&self, other: &Self) -> bool {
-        let PrivateKey(p1) = self;
-        let PrivateKey(p2) = self;
-        p1 == p2
+        self.0 == other.0
     }
 }
 
@@ -119,11 +119,15 @@ impl PrivateKey {
 
 impl ECPrivateKey for PrivateKey {
     fn serialize(&self) -> [u8; 32] {
-        [0; 32]
+        self.0
     }
 
     fn get_type(&self) -> u8 {
         DJB_TYPE
+    }
+
+    fn get_private_key(&self) -> [u8; 32] {
+        self.0
     }
 }
 
@@ -137,9 +141,7 @@ impl PublicKey {
 
 impl PartialEq for PublicKey {
     fn eq(&self, other: &Self) -> bool {
-        let PublicKey(p1) = self;
-        let PublicKey(p2) = self;
-        p1 == p2
+        self.0 == other.0
     }
 }
 
@@ -151,13 +153,15 @@ impl ECPublicKey for PublicKey {
     }
 
     fn serialize(&self) -> [u8; 32] {
-        // FIXME: Stub
-        [0; 32]
+        self.0
     }
 
     fn get_type(&self) -> u8 {
-        // FIXME: Stub
         DJB_TYPE
+    }
+
+    fn get_public_key(&self) -> [u8; 32] {
+        self.0
     }
 }
 
