@@ -12,20 +12,6 @@ impl Curve {
     pub fn generate_key_pair() -> KeyPair {
         Curve25519::generate_key_pair()
     }
-}
-
-pub struct KeyPair {
-    pub public_key: PublicKey,
-    pub private_key: PrivateKey,
-}
-
-impl KeyPair {
-    pub fn new(public: PublicKey, private: PrivateKey) -> Self {
-        Self {
-            public_key: public,
-            private_key: private,
-        }
-    }
 
     pub fn decode_point(bytes: &[u8], offset: usize) -> Result<impl ECPublicKey, InvalidKeyError> {
         if bytes.len() == 0 || bytes.len() - offset < 1 {
@@ -33,8 +19,6 @@ impl KeyPair {
         } else {
             // Truncate the number to last 8 bits
             let type_ = &bytes[offset] & 0xff;
-
-            println!("type_ {}", type_);
 
             if type_ == DJB_TYPE.try_into().unwrap() {
                 if bytes.len() - offset < 33 {
@@ -68,8 +52,8 @@ impl KeyPair {
     }
 
     pub fn calculate_agreement(
-        public_key: impl ECPublicKey,
-        private_key: impl ECPrivateKey,
+        public_key: &PublicKey,
+        private_key: &PrivateKey,
     ) -> Result<[u8; 32], InvalidKeyError> {
         let (a, b) = (public_key.get_type(), private_key.get_type());
 
@@ -83,6 +67,20 @@ impl KeyPair {
             public_key.get_public_key(),
             private_key.get_private_key(),
         ))
+    }
+}
+
+pub struct KeyPair {
+    pub public_key: PublicKey,
+    pub private_key: PrivateKey,
+}
+
+impl KeyPair {
+    pub fn new(public: PublicKey, private: PrivateKey) -> Self {
+        Self {
+            public_key: public,
+            private_key: private,
+        }
     }
 }
 
@@ -178,17 +176,17 @@ pub mod tests {
         let offset2 = 10;
         let b3 = &helpers::slices::concat_2(&[0x00, 0x08, 0x05], &[0x00; 64][..]);
 
-        match KeyPair::decode_point(b1, 2) {
+        match Curve::decode_point(b1, 2) {
             Ok(_) => panic!("Expected Error"),
             Err(InvalidKeyError(s)) => assert_eq!(s, "No key type identifier".to_string()),
         }
 
-        match KeyPair::decode_point(b2, 10) {
+        match Curve::decode_point(b2, 10) {
             Ok(_) => panic!("Expected Error"),
             Err(InvalidKeyError(s)) => assert_eq!(s, "No key type identifier".to_string()),
         }
 
-        match KeyPair::decode_point(b3, 2) {
+        match Curve::decode_point(b3, 2) {
             Ok(_) => assert!(true),
             Err(_) => panic!("Expect Ok, found Err"),
         }
@@ -200,19 +198,39 @@ pub mod tests {
         let too_long = &[0x08; 64];
         let good_size = &[0x05; 32];
 
-        match KeyPair::decode_private_point(too_short) {
+        match Curve::decode_private_point(too_short) {
             Ok(_) => panic!("Expect to fail"),
             Err(_) => assert!(true),
         }
 
-        match KeyPair::decode_private_point(too_long) {
+        match Curve::decode_private_point(too_long) {
             Ok(_) => panic!("Expect to fail"),
             Err(_) => assert!(true),
         }
 
-        match KeyPair::decode_private_point(good_size) {
+        match Curve::decode_private_point(good_size) {
             Ok(_) => assert!(true),
             Err(_) => panic!("Expect Ok"),
         }
+    }
+
+    #[test]
+    pub fn test_keypair_calculate_agreement() {
+        let alice = Curve::generate_key_pair();
+        let bob = Curve::generate_key_pair();
+
+        let shared_key_1 = Curve::calculate_agreement(&alice.public_key, &bob.private_key);
+        let shared_key_2 = Curve::calculate_agreement(&alice.public_key, &bob.private_key);
+
+        if let Ok(k1) = shared_key_1 {
+            if let Ok(k2) = shared_key_2 {
+                assert!(k1.len() > 0);
+                assert!(k2.len() > 0);
+                assert_eq!(k1, k2);
+                println!("HOOO");
+                return ();
+            }
+        }
+        panic!("Expected Ok, got Error");
     }
 }

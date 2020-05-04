@@ -1,7 +1,7 @@
 use byteorder::{ByteOrder, LittleEndian};
 use rand::rngs::OsRng;
 use rand::RngCore;
-use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
+use x25519_dalek::{PublicKey, StaticSecret};
 
 use crate::libsignal::ecc;
 
@@ -27,7 +27,7 @@ impl Curve25519 {
 
         LittleEndian::write_u32(&mut buf, priv_key);
 
-        let secret = EphemeralSecret::new(&mut gen);
+        let secret = StaticSecret::new(&mut gen);
 
         let pub_key = *PublicKey::from(&secret).as_bytes();
 
