@@ -51,7 +51,7 @@ impl Curve {
         }
     }
 
-    pub fn calculate_agreement(
+    pub fn calculate_agreement<PublicKey: ECPublicKey, PrivateKey: ECPrivateKey>(
         public_key: &PublicKey,
         private_key: &PrivateKey,
     ) -> Result<[u8; 32], InvalidKeyError> {
